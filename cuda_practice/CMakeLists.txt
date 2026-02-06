@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.22)
 project(cuda_practice LANGUAGES CXX CUDA)
 
-set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_BUILD_TYPE "")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CUDA_ARCHITECTURES 89)
 
 include(cmake/dependencies.cmake)
 
