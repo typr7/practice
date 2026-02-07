@@ -11,3 +11,4 @@ include(cmake/dependencies.cmake)
 
 add_subdirectory(src/01_vector_add)
 add_subdirectory(src/02_rgb_to_gray)
+add_subdirectory(src/03_image_blur)
