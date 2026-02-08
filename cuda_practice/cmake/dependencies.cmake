@@ -1,3 +1,6 @@
+# cuda
+find_package(CUDAToolkit REQUIRED)
+
 # stb_image
 
 include(FetchContent)

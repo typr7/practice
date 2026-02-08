@@ -1,2 +1,2 @@
 add_executable(rgb_to_gray rgb_to_gray.cu)
-target_link_libraries(rgb_to_gray PRIVATE stb_image)
+target_link_libraries(rgb_to_gray PRIVATE CUDA::cudart stb_image)
