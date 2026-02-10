@@ -42,7 +42,41 @@ matrixMul(const float* A_d, const float* B_d, float* C_d)
     }
 }
 
+__global__ void
+matrixMulCol(const float* A_d, const float* B_d, float* C_d)
+{
+    const int cx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (cx < B_COLS) {
+        for (int cy = 0; cy < A_ROWS; cy++) {
+            const int ci = cy * B_COLS + cx;
+            double sum = 0.0;
+            for (int i = 0; i < A_COLS; i++) {
+                const int ai = cy * A_COLS + i;
+                const int bi = i * B_COLS + cx;
+                sum += A_d[ai] * B_d[bi];
+            }
+            C_d[ci] = static_cast<float>(sum);
+        }
+    }
+}
 
+__global__ void
+matrixMulRow(const float* A_d, const float* B_d, float* C_d)
+{
+    const int cy = blockDim.x * blockIdx.x + threadIdx.x;
+    if (cy < A_ROWS) {
+        for (int cx = 0; cx < B_COLS; cx++) {
+            const int ci = cy * B_COLS + cx;
+            double sum = 0.0;
+            for (int i = 0; i < A_COLS; i++) {
+                const int ai = cy * A_COLS + i;
+                const int bi = i * B_COLS + cx;
+                sum += A_d[ai] * B_d[bi];
+            }
+            C_d[ci] = static_cast<float>(sum);
+        }
+    }
+}
 
 void plainMatrixMul(const float* A, const float* B, float* C)
 {
@@ -94,10 +128,18 @@ int main()
     cudaMemcpy(A_d, A, A_size, cudaMemcpyHostToDevice);
     cudaMemcpy(B_d, B, B_size, cudaMemcpyHostToDevice);
 
+    // per element
+    // dim3 block_dim(16, 16, 1);
+    // dim3 grid_dim(std::ceil(B_COLS / 16.f), std::ceil(A_ROWS / 16.f), 1);
+    // matrixMul<<<grid_dim, block_dim>>>(A_d, B_d, C_d);
 
-    dim3 block_dim(16, 16, 1);
-    dim3 grid_dim(std::ceil(B_COLS / 16.f), std::ceil(A_ROWS / 16.f), 1);
-    matrixMul<<<grid_dim, block_dim>>>(A_d, B_d, C_d);
+    dim3 block_dim(2, 1, 1);
+    dim3 grid_dim(std::ceil(B_COLS / 2.f), 1, 1);
+    // per col
+    // matrixMulCol<<<grid_dim, block_dim>>>(A_d, B_d, C_d);
+    // per row
+    matrixMulRow<<<grid_dim, block_dim>>>(A_d, B_d, C_d);
+
     cudaDeviceSynchronize();
     plainMatrixMul(A, B, C_plain);
 

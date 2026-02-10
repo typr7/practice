@@ -1,2 +1,4 @@
 add_executable(matrix_multiplication matrix_multiplication.cu)
+add_executable(matvec_multiplication matvec_multiplication.cu)
 target_link_libraries(matrix_multiplication PRIVATE CUDA::cudart)
+target_link_libraries(matvec_multiplication PRIVATE CUDA::cudart)
