@@ -10,6 +10,7 @@ using MatmulFn = void(
 MatmulFn matmul_v1;
 MatmulFn matmul_v2;
 MatmulFn matmul_v3;
+MatmulFn matmul_v4;
 
 template <MatmulFn matmul_fn>
 torch::Tensor matmul(torch::Tensor A, torch::Tensor B)
@@ -31,4 +32,5 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("matmul_v1", &matmul<matmul_v1>, "Matrix multiplication v1");
     m.def("matmul_v2", &matmul<matmul_v2>, "Matrix multiplication v2");
     m.def("matmul_v3", &matmul<matmul_v3>, "Matrix multiplication v3");
+    m.def("matmul_v4", &matmul<matmul_v4>, "Matrix multiplication v4");
 }

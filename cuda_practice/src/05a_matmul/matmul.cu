@@ -139,6 +139,68 @@ void matmul_v3_kernel(
     }
 }
 
+template <int TB_SIZE, int BLOCK_M, int BLOCK_N, int BLOCK_K, int THREAD_M, int THREAD_N>
+__global__
+void matmul_v4_kernel(
+    const float* __restrict__ A,
+    const float* __restrict__ B,
+    float* __restrict__ C,
+    int M, int N, int K
+) {
+    const int tid = threadIdx.x;
+
+    const int offset_m = blockIdx.y * BLOCK_M;
+    const int offset_n = blockIdx.x * BLOCK_N;
+
+    const int tile_offset_m = (tid / (BLOCK_N / THREAD_N)) * THREAD_M;
+    const int tile_offset_n = (tid % (BLOCK_N / THREAD_N)) * THREAD_N;
+
+    A += offset_m * K;
+    B += offset_n;
+    C += (offset_m + tile_offset_m) * N + offset_n + tile_offset_n;
+
+    __shared__ float A_smem[BLOCK_M][BLOCK_K];
+    __shared__ float B_smem[BLOCK_K][BLOCK_N];
+
+    float acc[THREAD_M][THREAD_N] = {0.f};
+    for (int offset_k = 0; offset_k < K; offset_k += BLOCK_K) {
+        load_block_to_smem<TB_SIZE, BLOCK_M, BLOCK_K>(A, A_smem, K, M - offset_m, K - offset_k);
+        load_block_to_smem<TB_SIZE, BLOCK_K, BLOCK_N>(B, B_smem, N, K - offset_k, N - offset_n);
+        __syncthreads();
+
+        for (int k = 0; k < BLOCK_K; k++) {
+            float A_reg[THREAD_M];
+            float B_reg[THREAD_N];
+
+            for (int i = 0; i < THREAD_M; i++) {
+                A_reg[i] = A_smem[tile_offset_m + i][k];
+            }
+
+            for (int i = 0; i < THREAD_N; i++) {
+                B_reg[i] = B_smem[k][tile_offset_n + i];
+            }
+
+            for (int y = 0; y < THREAD_M; y++) {
+                for (int x = 0; x < THREAD_N; x++) {
+                    acc[y][x] += A_reg[y] * B_reg[x];
+                }
+            }
+        } 
+        __syncthreads();
+
+        A += BLOCK_K;
+        B += BLOCK_K * N;
+    }
+
+    for (int y = 0; y < THREAD_M; y++) {
+        for (int x = 0; x < THREAD_N; x++) {
+            if ((offset_m + tile_offset_m + y < M) && (offset_n + tile_offset_n + x < N)) {
+                C[y * N + x] = acc[y][x];
+            }
+        }
+    }
+}
+
 }
 
 void matmul_v1(
@@ -180,5 +242,26 @@ void matmul_v3(
     constexpr int TB_SIZE = 256;
     dim3 grid_size(cdiv(N, BLOCK_N), cdiv(M, BLOCK_M));
     matmul_v3_kernel<TB_SIZE, BLOCK_M, BLOCK_N, BLOCK_K>
+        <<<grid_size, TB_SIZE>>>(A, B, C, M, N, K);
+}
+
+void matmul_v4(
+    const float* A,
+    const float* B,
+    float* C,
+    int M, int N, int K
+) {
+    constexpr int BLOCK_M  = 128;
+    constexpr int BLOCK_N  = 128;
+    constexpr int BLOCK_K  = 32;
+    constexpr int THREAD_M = 8;
+    constexpr int THREAD_N = 8;
+    constexpr int TB_SIZE  = (BLOCK_M * BLOCK_N) / (THREAD_M * THREAD_N);
+
+    static_assert((BLOCK_M * BLOCK_N) % (THREAD_M * THREAD_N) == 0);
+    static_assert((BLOCK_M % THREAD_M == 0) && (BLOCK_N % THREAD_N == 0));
+
+    dim3 grid_size(cdiv(N, BLOCK_N), cdiv(M, BLOCK_M));
+    matmul_v4_kernel<TB_SIZE, BLOCK_M, BLOCK_N, BLOCK_K, THREAD_M, THREAD_N>
         <<<grid_size, TB_SIZE>>>(A, B, C, M, N, K);
 }
