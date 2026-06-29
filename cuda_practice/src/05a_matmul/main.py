@@ -19,7 +19,8 @@ module = torch.utils.cpp_extension.load(
 input1 = torch.randn((4096, 4096), dtype=torch.float32).cuda();
 input2 = torch.randn((4096, 4096), dtype=torch.float32).cuda();
 
-output_ref = torch.matmul(input1, input2)
+# output_ref = torch.matmul(input1, input2)
+output_ref = module.matmul_cublas_gemm(input1, input2)
 output_v1  = module.matmul_v1(input1, input2)
 output_v2  = module.matmul_v2(input1, input2)
 output_v3  = module.matmul_v3(input1, input2)
@@ -32,6 +33,7 @@ torch.testing.assert_close(output_v3, output_ref)
 torch.testing.assert_close(output_v4, output_ref)
 torch.testing.assert_close(output_v5, output_ref)
 
+print(f'cublas: {benchmark(module.matmul_cublas_gemm, input1, input2)}')
 print(f'v1: {benchmark(module.matmul_v1, input1, input2)}')
 print(f'v2: {benchmark(module.matmul_v2, input1, input2)}')
 print(f'v3: {benchmark(module.matmul_v3, input1, input2)}')

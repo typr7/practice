@@ -7,6 +7,7 @@ using MatmulFn = void(
     int M, int N, int K
 );
 
+MatmulFn matmul_cublas_gemm;
 MatmulFn matmul_v1;
 MatmulFn matmul_v2;
 MatmulFn matmul_v3;
@@ -30,6 +31,7 @@ torch::Tensor matmul(torch::Tensor A, torch::Tensor B)
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+    m.def("matmul_cublas_gemm", &matmul<matmul_cublas_gemm>, "cublasGemmEx");
     m.def("matmul_v1", &matmul<matmul_v1>, "Matrix multiplication v1");
     m.def("matmul_v2", &matmul<matmul_v2>, "Matrix multiplication v2");
     m.def("matmul_v3", &matmul<matmul_v3>, "Matrix multiplication v3");
