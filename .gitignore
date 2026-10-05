@@ -139,3 +139,5 @@ $RECYCLE.BIN/
 *.lock
 !.gitignore
 
+third_party/
+.clangd
